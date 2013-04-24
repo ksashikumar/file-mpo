@@ -35,7 +35,6 @@ static void              run                 (const gchar      *name,
                                               GimpParam       **return_vals);
 
 
-static size_t            get_file_size       (const gchar  *filename);
 static gboolean          load_image          (const gchar  *filename,
                                               GError      **error);
 static gboolean          split_mpo           (const gchar  *filename);
@@ -141,20 +140,6 @@ run (const gchar      *name,
   values[0].data.d_status = status;
 }
 
-
-/* get file size from a filename */
-static size_t
-get_file_size (const gchar *filename)
-{
-  struct stat status;
-
-  g_stat (filename, &status);
-
-  return status.st_size;
-}
-
-
-
 static gboolean
 load_image (const gchar  *filename,
             GError      **error)
@@ -177,37 +162,47 @@ load_image (const gchar  *filename,
 
   if (split_mpo (filename))
     {
-      for (i = 0; i < num_images; i++)
+      for (i = num_images - 1; i >= 0; i--)
         {
-          pixbuf= gdk_pixbuf_new_from_file(image_name[i], NULL);
+
+          gchar  *layer_name = g_new0 (gchar, 100); /*Bad Assumption*/
+          sprintf (layer_name, "image#%d", i+1);
+          pixbuf = gdk_pixbuf_new_from_file(image_name[i], NULL);
+
+          remove (image_name[i]); /*delete the temporary JPEG files*/         
           
           if (pixbuf)
             {
             
-              if (i == 0)
-                image_id = gimp_image_new (gdk_pixbuf_get_width (pixbuf),
-                                           gdk_pixbuf_get_height (pixbuf),
-                                           GIMP_RGB);
-    
-              layer_id = gimp_layer_new_from_pixbuf (image_id, _(image_name[i]),
+              if (i == num_images - 1)
+                {
+                  image_id = gimp_image_new (gdk_pixbuf_get_width (pixbuf),
+                                             gdk_pixbuf_get_height (pixbuf),
+                                             GIMP_RGB);
+                  gimp_image_set_filename (image_id, filename);
+                }
+
+              layer_id = gimp_layer_new_from_pixbuf (image_id, _(layer_name),
                                                      pixbuf,
                                                      100.,
                                                      GIMP_NORMAL_MODE, 0, 0);
               g_object_unref (pixbuf);
     
-              gimp_image_set_filename (image_id, filename);
               gimp_image_insert_layer (image_id, layer_id, -1, -1);
               status = TRUE;
     
-          }
-        else
+           }
+          else
             status = FALSE;
-      }
+          free (layer_name);
+        }
     }
-    else
-      status = FALSE;
+  else
+    status = FALSE;
 
-    return status;
+  free (image_name);
+
+  return status;
 
 }
 
@@ -223,7 +218,13 @@ split_mpo (const gchar  *filename)
   gchar *temp;
 
   fnmbase = strdup(filename);
+
   ext = strstr(fnmbase,".MPO");
+
+  if (ext != NULL) 
+      ext[0] = '\0';
+
+  ext = strstr(fnmbase,".mpo");
 
   if (ext != NULL) 
       ext[0] = '\0';
