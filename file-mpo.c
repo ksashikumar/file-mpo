@@ -1,3 +1,55 @@
+/* 3D MPO loader and saver plug-in for Gimp 
+ *
+ * This plug-in is based on mposplit.c 
+ *    A small tool for splitting MPO files into their JPG components.
+ *    $Id: mposplit.c,v 1.5 2012/06/24 01:16:33 chris Exp $
+ *    Copyright (C) 2009-2012, Christian Steinruecken. All rights reserved.
+ * 
+ *    This code is released under the Revised BSD Licence.
+ * 
+ *    Redistribution and use in source and binary forms, with or without
+ *    modification, are permitted provided that the following conditions
+ *    are met:
+ *    
+ *      - Redistributions of source code must retain the above copyright
+ *        notice, this list of conditions and the following disclaimer.
+ *      - Redistributions in binary form must reproduce the above copyright
+ *        notice, this list of conditions and the following disclaimer in the
+ *        documentation and/or other materials provided with the distribution.
+ *      - The names of the author(s) and contributors may not be used to
+ *        endorse or promote products derived from this software without
+ *        specific prior written permission.
+ *
+ *    DISCLAIMER:
+ *    This software is provided by the copyright holders and contributors
+ *    "as is" and any express or implied warranties, including, but not
+ *    limited to, the implied warranties of merchantability and fitness for
+ *    a particular purpose are disclaimed.  In no event shall the copyright
+ *    holders be liable for any direct, indirect, incidental, special,
+ *    exemplary, or consequential damages (including, but not limited to,
+ *    procurement of substitute goods or services; loss of use, data, or
+ *    profits; or business interruption) however caused and on any theory of
+ *    liability, whether in contract, strict liability, or tort (including
+ *    negligence or otherwise) arising in any way out of the use of this
+ *    software, even if advised of the possibility of such damage.
+ *
+ *
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation; either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ */
+
+
 #include "config.h"
 
 #include <errno.h>
@@ -19,6 +71,7 @@
 #endif
 
 #include "libgimp/gimp.h"
+#include "libgimp/gimpui.h"
 #include "libgimp/stdplugins-intl.h"
 
 
@@ -40,7 +93,7 @@ static gboolean          load_image          (const gchar  *filename,
 static gboolean          split_mpo           (const gchar  *filename);
 
 
-static gint           num_images = 0; /*Number of images in MPO file*/
+static gint           num_images = 0; /* Number of images in MPO file */
 static gchar        **image_name;
 static FILE          *fp;
 static gint32         image_id;
@@ -165,11 +218,11 @@ load_image (const gchar  *filename,
       for (i = num_images - 1; i >= 0; i--)
         {
 
-          gchar  *layer_name = g_new0 (gchar, 100); /*Bad Assumption*/
+          gchar  *layer_name = g_new0 (gchar, 100); /* Bad Assumption */
           sprintf (layer_name, "image#%d", i+1);
           pixbuf = gdk_pixbuf_new_from_file(image_name[i], NULL);
 
-          remove (image_name[i]); /*delete the temporary JPEG files*/         
+          remove (image_name[i]); /* Delete the temporary JPEG files */         
           
           if (pixbuf)
             {
@@ -196,6 +249,7 @@ load_image (const gchar  *filename,
             status = FALSE;
           free (layer_name);
         }
+      gimp_image_resize_to_layers (image_id); /* Resize the image to the maximum layer size */
     }
   else
     status = FALSE;
@@ -206,11 +260,12 @@ load_image (const gchar  *filename,
 
 }
 
+/* mposplit - Split MPO file into their JPG components. */
 static gboolean
 split_mpo (const gchar  *filename)
 {
-  size_t length;  /*total length of file*/
-  size_t amount;  /*amount read*/
+  size_t length;  /* Total length of file */
+  size_t amount;  /* Amount read */
   gint   i = 0;
   gchar* buffer;
   gchar* fnmbase;
@@ -229,12 +284,12 @@ split_mpo (const gchar  *filename)
   if (ext != NULL) 
       ext[0] = '\0';
 
-  /*obtain file size:*/
+  /* Obtain file size: */
   fseek(fp, 0, SEEK_END);
   length = ftell(fp);
   rewind(fp);
 
-  /*allocate memory to contain the whole file:*/
+  /* Allocate memory to contain the whole file: */
   buffer = g_new0 (gchar ,length);
 
   amount = fread(buffer,1,length,fp);
@@ -242,11 +297,11 @@ split_mpo (const gchar  *filename)
       return FALSE;
   fclose(fp);
 
-  /*Now find the individual JPGs*/
+  /* Now find the individual images */
 
   gchar* view = buffer;
   gchar* last = NULL;
-  image_name  = g_new (gchar *, 256);
+  image_name  = g_new (gchar *, 128); /* Assuming a maximum of 128  layers */
 
   while (view < buffer+length-4) 
     {
@@ -256,14 +311,15 @@ split_mpo (const gchar  *filename)
             {
               if (((char) view[2] % 255) == (char) 0xff) 
                 {
-                  if (((char) view[3] % 255) == (char) 0xe1) 
+                  if (((char) view[3] % 255) == (char) 0xe1)/* FIXME: Make generalized check
+                                                                      for JFIF tag 0xff 0xe0 */ 
                     {
                       num_images++;
                       if (last != NULL) 
                         {
-                          /*copy out the previous view*/                   
-                          image_name[i] = malloc (sizeof(gchar) * 30); /*Bad Assumption*/
-                          sprintf(image_name[i], "%s.image#%d.jpg", fnmbase, num_images-1);
+                          /* copy out the previous view */                   
+                          image_name[i] = malloc (sizeof(gchar) * 200); /* Bad Assumption */
+                          sprintf(image_name[i], "%s.image#%d", fnmbase, num_images-1);
                           FILE* w = fopen(image_name[i], "wb");
                           fwrite(last, 1, view-last, w);
                           fclose(w);
@@ -288,8 +344,8 @@ split_mpo (const gchar  *filename)
   if (num_images > 1) 
     {
       
-      image_name[i] = malloc (sizeof(gchar) * 30);
-      sprintf(image_name[i], "%s.image#%d.jpg", fnmbase, num_images);
+      image_name[i] = malloc (sizeof(gchar) * 200);
+      sprintf(image_name[i], "%s.image#%d", fnmbase, num_images);
       FILE* w = fopen(image_name[i], "wb");
       fwrite(last, 1, buffer+length-last, w);
       fclose(w);
