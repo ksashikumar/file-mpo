@@ -1,6 +1,6 @@
 3D MPO loader and saver plug-in for GIMP
 
-        MPO (Multiple Picture Object) is one of the stereo 3D image format used in 
+        MPO (Multiple Picture Object) is one of the stereo 3D image formats used in 
 some of the 3D cameras.
 
         Some cameras create MPO files which contain multiple images.
