@@ -50,7 +50,6 @@
  */
 
 
-#include "config.h"
 
 #include <errno.h>
 #include <string.h>
@@ -72,7 +71,6 @@
 
 #include "libgimp/gimp.h"
 #include "libgimp/gimpui.h"
-#include "libgimp/stdplugins-intl.h"
 
 
 #define LOAD_PROC      "file-mpo-load"
@@ -129,7 +127,7 @@ query (void)
                           "Sashi Kumar <ksashikumark93@gmail.com>",
                           "Sashi Kumar <ksashikumark93@gmail.com>",
                           "24th April 2013",
-                          N_("3D MPO Data"),
+                          "3D MPO Data",
                           NULL,
                           GIMP_PLUGIN,
                           G_N_ELEMENTS (load_args),
@@ -153,7 +151,6 @@ run (const gchar      *name,
   GimpPDBStatusType  status = GIMP_PDB_SUCCESS;
   GError            *error  = NULL;
 
-  INIT_I18N ();
 
   run_mode = param[0].data.d_int32;
 
@@ -208,7 +205,7 @@ load_image (const gchar  *filename,
   if (!fp)
     {
       g_set_error (error, G_FILE_ERROR, g_file_error_from_errno (errno),
-                   _("Could not open '%s' for reading: %s"),
+                   "Could not open '%s' for reading: %s",
                    gimp_filename_to_utf8 (filename), g_strerror (errno));
       return FALSE;
     }
@@ -235,7 +232,7 @@ load_image (const gchar  *filename,
                   gimp_image_set_filename (image_id, filename);
                 }
 
-              layer_id = gimp_layer_new_from_pixbuf (image_id, _(layer_name),
+              layer_id = gimp_layer_new_from_pixbuf (image_id, layer_name,
                                                      pixbuf,
                                                      100.,
                                                      GIMP_NORMAL_MODE, 0, 0);
