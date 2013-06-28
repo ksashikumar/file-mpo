@@ -1,4 +1,4 @@
-/* 3D MPO loader and saver plug-in for Gimp 
+/* 3D MPO loader for Gimp - Version 0.1 
  *
  * This plug-in is based on mposplit.c 
  *    A small tool for splitting MPO files into their JPG components.
@@ -73,10 +73,10 @@
 #include "libgimp/gimpui.h"
 
 
-#define LOAD_PROC      "file-mpo-load"
-#define SAVE_PROC      "file-mpo-save"
-#define PLUG_IN_BINARY "file-mpo"
-#define PLUG_IN_ROLE   "gimp-file-mpo"
+#define LOAD_PROC        "file-mpo-load"
+#define SAVE_PROC        "file-mpo-save"
+#define PLUG_IN_BINARY   "file-mpo"
+#define PLUG_IN_ROLE     "gimp-file-mpo"
 
 static void              query               (void);
 static void              run                 (const gchar      *name,
