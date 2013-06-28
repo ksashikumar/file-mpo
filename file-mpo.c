@@ -89,13 +89,13 @@ static void              run                 (const gchar      *name,
 static gboolean          load_image          (const gchar  *filename,
                                               GError      **error);
 static gboolean          split_mpo           (const gchar  *filename);
-
+static void              delete_layers       (void);
 
 static gint           num_images = 0; /* Number of images in MPO file */
 static gchar        **image_name;
 static FILE          *fp;
 static gint32         image_id;
-
+static gint32         layer_id[8]; /* Number of images in MPO cannot exceed 8*/
 const GimpPlugInInfo PLUG_IN_INFO =
 {
   NULL,   /* init_proc  */
@@ -194,7 +194,6 @@ static gboolean
 load_image (const gchar  *filename,
             GError      **error)
 {
-  gint32  layer_id;
   gint32  size;
   gint    i;
   GdkPixbuf* pixbuf;
@@ -210,16 +209,17 @@ load_image (const gchar  *filename,
       return FALSE;
     }
 
+ 
   if (split_mpo (filename))
     {
       for (i = num_images - 1; i >= 0; i--)
         {
-
+          GError *gerror = NULL;
           gchar  *layer_name = g_new0 (gchar, 100); /* Bad Assumption */
           sprintf (layer_name, "image#%d", i+1);
-          pixbuf = gdk_pixbuf_new_from_file(image_name[i], NULL);
+          pixbuf = gdk_pixbuf_new_from_file(image_name[i], &gerror);
           
-          remove (image_name[i]); /* Delete the temporary JPEG files */         
+          remove (image_name[i]); /* FIXME: Make IO operations more efficient, blind delete is dangerous */         
           
           if (pixbuf)
             {
@@ -232,23 +232,31 @@ load_image (const gchar  *filename,
                   gimp_image_set_filename (image_id, filename);
                 }
 
-              layer_id = gimp_layer_new_from_pixbuf (image_id, layer_name,
-                                                     pixbuf,
-                                                     100.,
-                                                     GIMP_NORMAL_MODE, 0, 0);
-              g_object_unref (pixbuf);
-    
-              gimp_image_insert_layer (image_id, layer_id, -1, -1);
+              layer_id[i] = gimp_layer_new_from_pixbuf (image_id, layer_name,
+                                                        pixbuf,
+                                                        100.,
+                                                        GIMP_NORMAL_MODE, 0, 0);
+              
+              gimp_image_insert_layer (image_id, layer_id[i], -1, -1);
+              
               status = TRUE;
-    
+              g_object_unref (pixbuf);
+        
            }
           else
-            status = FALSE;
+            { 
+              g_printf ("\nError message: %s\n", gerror->message); 
+              exit (1);
+            }
 
           free (layer_name);
           free (image_name[i]);
         }
+
       gimp_image_resize_to_layers (image_id); /* Resize the image to the maximum layer size */
+  
+      if (num_images > 2)
+        delete_layers();
     }
   else
     status = FALSE;
@@ -341,7 +349,7 @@ split_mpo (const gchar  *filename)
   if (num_images > 1) 
     {
       
-      image_name[i] = malloc (sizeof(gchar) * 200);
+      image_name[i] = malloc (sizeof(gchar) * 200);;
       sprintf(image_name[i], "%s.image#%d", fnmbase, num_images);
       FILE* w = fopen(image_name[i], "wb");
       fwrite(last, 1, buffer+length-last, w);
@@ -354,3 +362,23 @@ split_mpo (const gchar  *filename)
 
 }
 
+/* delete_layers()
+ *              The MPO file has only two views. But the file may contain duplicate images.
+ * Hence they must be removed from the buffer to reduce the memory occupied by the file
+ */
+
+static void
+delete_layers (void)
+{
+  gint width, height;
+  gint i;
+
+  width = gimp_image_width(image_id);
+  height = gimp_image_height(image_id);
+
+  for (i = 0; i < num_images; i++)
+    {
+      if ((gimp_drawable_width(layer_id[i]) < width) && (gimp_drawable_height(layer_id[i]) < height))
+        gimp_image_remove_layer(image_id, layer_id[i]);
+    }
+}
