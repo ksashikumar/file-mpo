@@ -218,7 +218,7 @@ load_image (const gchar  *filename,
           gchar  *layer_name = g_new0 (gchar, 100); /* Bad Assumption */
           sprintf (layer_name, "image#%d", i+1);
           pixbuf = gdk_pixbuf_new_from_file(image_name[i], NULL);
-
+          
           remove (image_name[i]); /* Delete the temporary JPEG files */         
           
           if (pixbuf)
@@ -244,14 +244,14 @@ load_image (const gchar  *filename,
            }
           else
             status = FALSE;
+
           free (layer_name);
+          free (image_name[i]);
         }
       gimp_image_resize_to_layers (image_id); /* Resize the image to the maximum layer size */
     }
   else
     status = FALSE;
-
-  free (image_name);
 
   return status;
 
