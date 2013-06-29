@@ -1,4 +1,4 @@
-3D MPO loader and saver plug-in for GIMP
+3D MPO loader plug-in for GIMP
 
         MPO (Multiple Picture Object) is one of the stereo 3D image formats used in 
 some of the 3D cameras.
@@ -10,3 +10,5 @@ the camera Ricoh CX5 saves serial pictures in a MPO file.
 
         GIMP currently only reads the first image of the MPO file. This plug-in reads the 
 images contained in the MPO file to separate layers. 
+
+Plug-in Registry : http://registry.gimp.org/node/28259 
