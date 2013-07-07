@@ -11,4 +11,6 @@ the camera Ricoh CX5 saves serial pictures in a MPO file.
         GIMP currently only reads the first image of the MPO file. This plug-in reads the 
 images contained in the MPO file to separate layers. 
 
+        This plug-in is based on the enhancement request in Bugzilla - https://bugzilla.gnome.org/show_bug.cgi?id=675262
+
 Plug-in Registry : http://registry.gimp.org/node/28259 
