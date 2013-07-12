@@ -378,7 +378,9 @@ delete_layers (void)
 
   for (i = 0; i < num_images; i++)
     {
-      if ((gimp_drawable_width(layer_id[i]) < width) && (gimp_drawable_height(layer_id[i]) < height))
-        gimp_image_remove_layer(image_id, layer_id[i]);
+      if ((gimp_drawable_width (layer_id[i]) < width) && (gimp_drawable_height(layer_id[i]) < height))
+        gimp_image_remove_layer (image_id, layer_id[i]);
+      else
+        gimp_drawable_set_name (
     }
 }
